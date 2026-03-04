@@ -68,7 +68,7 @@ async function apiRequest(path, options = {}) {
 }
 
 const server = new McpServer({
-  name: "mcp-redhat-cases",
+  name: "mcp-redhat-support",
   version: "1.0.0",
 });
 

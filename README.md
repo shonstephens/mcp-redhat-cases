@@ -1,4 +1,4 @@
-# mcp-redhat-cases
+# mcp-redhat-support
 
 An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case Management API. Lets AI assistants list, read, comment on, and manage Red Hat support cases.
 
@@ -31,7 +31,7 @@ Add to `~/.claude/settings.json`:
   "mcpServers": {
     "redhat-cases": {
       "command": "npx",
-      "args": ["-y", "mcp-redhat-cases"],
+      "args": ["-y", "mcp-redhat-support"],
       "env": {
         "REDHAT_TOKEN": "${REDHAT_TOKEN}"
       }
