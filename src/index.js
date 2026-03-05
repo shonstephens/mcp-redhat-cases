@@ -74,16 +74,19 @@ const server = new McpServer({
 
 // --- Tools ---
 
-server.tool(
+server.registerTool(
   "listCases",
-  "List Red Hat support cases with optional filtering",
   {
-    accountNumber: z.string().describe("Red Hat account number (required to scope results)"),
-    maxResults: z.number().optional().default(10).describe("Maximum number of cases to return"),
-    offset: z.number().optional().default(0).describe("Pagination offset"),
-    status: z.string().optional().describe("Filter by status (e.g. 'Open', 'Closed', 'Waiting on Customer')"),
-    severity: z.string().optional().describe("Filter by severity (e.g. '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)')"),
-    searchString: z.string().optional().describe("Search string to filter cases"),
+    description: "List Red Hat support cases with optional filtering",
+    inputSchema: {
+      accountNumber: z.string().describe("Red Hat account number (required to scope results)"),
+      maxResults: z.number().optional().default(10).describe("Maximum number of cases to return"),
+      offset: z.number().optional().default(0).describe("Pagination offset"),
+      status: z.string().optional().describe("Filter by status (e.g. 'Open', 'Closed', 'Waiting on Customer')"),
+      severity: z.string().optional().describe("Filter by severity (e.g. '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)')"),
+      searchString: z.string().optional().describe("Search string to filter cases"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   },
   async ({ accountNumber, maxResults, offset, status, severity, searchString }) => {
     const body = { accountNumber, maxResults, offset };
@@ -102,11 +105,14 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "getCase",
-  "Get full details of a specific Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number (e.g. '04371920')"),
+    description: "Get full details of a specific Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number (e.g. '04371920')"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   },
   async ({ caseNumber }) => {
     const data = await apiRequest(`/cases/${caseNumber}`);
@@ -116,11 +122,14 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "getCaseComments",
-  "Get all comments on a Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number"),
+    description: "Get all comments on a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   },
   async ({ caseNumber }) => {
     const data = await apiRequest(`/cases/${caseNumber}/comments`);
@@ -130,13 +139,16 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "addCaseComment",
-  "Add a comment to a Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number"),
-    commentBody: z.string().describe("The comment text to add"),
-    isPublic: z.boolean().optional().default(true).describe("Whether the comment is visible to Red Hat (true) or internal/private (false)"),
+    description: "Add a comment to a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      commentBody: z.string().describe("The comment text to add"),
+      isPublic: z.boolean().optional().default(true).describe("Whether the comment is visible to Red Hat (true) or internal/private (false)"),
+    },
+    annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   async ({ caseNumber, commentBody, isPublic }) => {
     const payload = { commentBody, isPublic };
@@ -150,11 +162,14 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "getCaseAttachments",
-  "List attachments on a Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number"),
+    description: "List attachments on a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   },
   async ({ caseNumber }) => {
     const data = await apiRequest(`/cases/${caseNumber}/attachments`);
@@ -164,13 +179,16 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "downloadAttachment",
-  "Download a case attachment to a local file",
   {
-    caseNumber: z.string().describe("The case number"),
-    attachmentUuid: z.string().describe("The attachment UUID (from getCaseAttachments)"),
-    outputPath: z.string().describe("Local file path to save the attachment to"),
+    description: "Download a case attachment to a local file",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      attachmentUuid: z.string().describe("The attachment UUID (from getCaseAttachments)"),
+      outputPath: z.string().describe("Local file path to save the attachment to"),
+    },
+    annotations: { readOnlyHint: false, openWorldHint: true },
   },
   async ({ caseNumber, attachmentUuid, outputPath }) => {
     const token = await getAccessToken();
@@ -190,12 +208,15 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "uploadAttachment",
-  "Upload a local file as an attachment to a case",
   {
-    caseNumber: z.string().describe("The case number"),
-    filePath: z.string().describe("Local file path to upload"),
+    description: "Upload a local file as an attachment to a case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      filePath: z.string().describe("Local file path to upload"),
+    },
+    annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   async ({ caseNumber, filePath }) => {
     const token = await getAccessToken();
@@ -223,18 +244,21 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "createCase",
-  "Create a new Red Hat support case",
   {
-    summary: z.string().describe("Case summary/title"),
-    description: z.string().describe("Detailed description of the issue"),
-    product: z.string().describe("Product name (e.g. 'Red Hat Enterprise Linux', 'OpenShift Container Platform')"),
-    version: z.string().describe("Product version (e.g. '9.4', '4.16')"),
-    severity: z.string().optional().default("4 (Low)").describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
-    accountNumber: z.string().describe("Red Hat account number"),
-    cep: z.boolean().optional().default(false).describe("Consultant Engaged — set true if a consultant is working the case"),
-    contactName: z.string().optional().describe("Primary contact name for the case"),
+    description: "Create a new Red Hat support case",
+    inputSchema: {
+      summary: z.string().describe("Case summary/title"),
+      description: z.string().describe("Detailed description of the issue"),
+      product: z.string().describe("Product name (e.g. 'Red Hat Enterprise Linux', 'OpenShift Container Platform')"),
+      version: z.string().describe("Product version (e.g. '9.4', '4.16')"),
+      severity: z.string().optional().default("4 (Low)").describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
+      accountNumber: z.string().describe("Red Hat account number"),
+      cep: z.boolean().optional().default(false).describe("Consultant Engaged — set true if a consultant is working the case"),
+      contactName: z.string().optional().describe("Primary contact name for the case"),
+    },
+    annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   async ({ summary, description, product, version, severity, accountNumber, cep, contactName }) => {
     const body = { summary, description, product, version, severity, accountNumber, cep };
@@ -258,18 +282,21 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "updateCase",
-  "Update fields on an existing Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number"),
-    severity: z.string().optional().describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
-    status: z.string().optional().describe("Case status (e.g. 'Waiting on Red Hat', 'Waiting on Customer')"),
-    cep: z.boolean().optional().describe("Consultant Engaged flag"),
-    contactName: z.string().optional().describe("Primary contact name"),
-    alternateId: z.string().optional().describe("Alternate contact/tracking reference"),
-    summary: z.string().optional().describe("Update the case summary"),
-    description: z.string().optional().describe("Update the case description"),
+    description: "Update fields on an existing Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      severity: z.string().optional().describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
+      status: z.string().optional().describe("Case status (e.g. 'Waiting on Red Hat', 'Waiting on Customer')"),
+      cep: z.boolean().optional().describe("Consultant Engaged flag"),
+      contactName: z.string().optional().describe("Primary contact name"),
+      alternateId: z.string().optional().describe("Alternate contact/tracking reference"),
+      summary: z.string().optional().describe("Update the case summary"),
+      description: z.string().optional().describe("Update the case description"),
+    },
+    annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   async ({ caseNumber, ...fields }) => {
     const body = {};
@@ -291,12 +318,15 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "closeCase",
-  "Close a Red Hat support case",
   {
-    caseNumber: z.string().describe("The case number"),
-    closureComment: z.string().optional().describe("Optional closing comment/resolution summary"),
+    description: "Close a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      closureComment: z.string().optional().describe("Optional closing comment/resolution summary"),
+    },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   },
   async ({ caseNumber, closureComment }) => {
     if (closureComment) {
