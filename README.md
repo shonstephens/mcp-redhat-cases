@@ -9,13 +9,19 @@ An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case M
 | `listCases` | List support cases with filtering by status, severity, and search string |
 | `getCase` | Get full details of a specific case |
 | `getCaseComments` | Get all comments on a case |
+| `getCaseComment` | Get a single comment by comment ID |
 | `addCaseComment` | Add a comment to a case |
+| `getExternalTrackerUpdates` | List external tracker updates (linked Jira/Bugzilla) on a case |
+| `addNotifiedUsers` | Add notified users to a case |
+| `removeNotifiedUser` | Remove a notified user from a case |
 | `getCaseAttachments` | List attachments on a case |
 | `downloadAttachment` | Download a case attachment to a local file |
 | `uploadAttachment` | Upload a local file as an attachment to a case |
+| `deleteAttachment` | Delete an attachment from a case |
 | `createCase` | Open a new support case |
 | `updateCase` | Update case fields (severity, status, consultant engaged, contact, etc.) |
 | `closeCase` | Close a case with an optional resolution comment |
+| `getBusinessHours` | Get Red Hat support business hours for a given timezone |
 
 ## Prerequisites
 
