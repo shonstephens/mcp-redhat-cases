@@ -245,6 +245,132 @@ server.registerTool(
 );
 
 server.registerTool(
+  "getCaseComment",
+  {
+    description: "Get a single comment on a Red Hat support case by comment ID",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      commentId: z.string().describe("The comment ID"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async ({ caseNumber, commentId }) => {
+    const data = await apiRequest(`/cases/${caseNumber}/comments/${commentId}`);
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "getExternalTrackerUpdates",
+  {
+    description: "List external tracker updates (e.g. linked Jira/Bugzilla) on a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      startDate: z.string().optional().describe("Filter updates from this date (ISO 8601)"),
+      endDate: z.string().optional().describe("Filter updates until this date (ISO 8601)"),
+      sortField: z.string().optional().describe("Field to sort by"),
+      sortOrder: z.string().optional().describe("Sort order ('asc' or 'desc')"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async ({ caseNumber, startDate, endDate, sortField, sortOrder }) => {
+    const params = new URLSearchParams();
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    if (sortField) params.set("sortField", sortField);
+    if (sortOrder) params.set("sortOrder", sortOrder);
+    const qs = params.toString();
+    const data = await apiRequest(`/cases/${caseNumber}/externaltrackerupdates${qs ? `?${qs}` : ""}`);
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "addNotifiedUsers",
+  {
+    description: "Add notified users to a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      ssoUsernames: z.array(z.string()).describe("List of SSO usernames to add as notified users"),
+    },
+    annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  async ({ caseNumber, ssoUsernames }) => {
+    const payload = {
+      user: ssoUsernames.map(ssoUsername => ({ ssoUsername })),
+    };
+    const data = await apiRequest(`/cases/${caseNumber}/notifiedusers`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return {
+      content: [{ type: "text", text: data ? JSON.stringify(data, null, 2) : `Added ${ssoUsernames.length} notified user(s) to case ${caseNumber}` }],
+    };
+  }
+);
+
+server.registerTool(
+  "removeNotifiedUser",
+  {
+    description: "Remove a notified user from a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      ssoUsername: z.string().describe("SSO username of the notified user to remove"),
+    },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  },
+  async ({ caseNumber, ssoUsername }) => {
+    await apiRequest(`/cases/${caseNumber}/notifiedusers/${ssoUsername}`, {
+      method: "DELETE",
+    });
+    return {
+      content: [{ type: "text", text: `Removed notified user '${ssoUsername}' from case ${caseNumber}` }],
+    };
+  }
+);
+
+server.registerTool(
+  "deleteAttachment",
+  {
+    description: "Delete an attachment from a Red Hat support case",
+    inputSchema: {
+      caseNumber: z.string().describe("The case number"),
+      attachmentId: z.string().describe("The attachment ID to delete (from getCaseAttachments)"),
+    },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  },
+  async ({ caseNumber, attachmentId }) => {
+    await apiRequest(`/cases/${caseNumber}/attachments/${attachmentId}`, {
+      method: "DELETE",
+    });
+    return {
+      content: [{ type: "text", text: `Deleted attachment ${attachmentId} from case ${caseNumber}` }],
+    };
+  }
+);
+
+server.registerTool(
+  "getBusinessHours",
+  {
+    description: "Get Red Hat support business hours for a given timezone",
+    inputSchema: {
+      timezone: z.string().describe("Timezone (e.g. 'America/New_York', 'Asia/Tokyo', 'UTC')"),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async ({ timezone }) => {
+    const data = await apiRequest(`/businesshours?timezone=${encodeURIComponent(timezone)}`);
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
   "createCase",
   {
     description: "Create a new Red Hat support case",
