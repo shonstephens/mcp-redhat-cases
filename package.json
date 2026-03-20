@@ -1,6 +1,6 @@
 {
   "name": "mcp-redhat-support",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "MCP server for Red Hat Support Case Management API",
   "type": "module",
   "bin": {
@@ -19,11 +19,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shonstephens/mcp-redhat-support.git"
+    "url": "git+https://github.com/sleepytimeshon/mcp-redhat-support.git"
   },
-  "homepage": "https://github.com/shonstephens/mcp-redhat-support#readme",
+  "homepage": "https://github.com/sleepytimeshon/mcp-redhat-support#readme",
   "bugs": {
-    "url": "https://github.com/shonstephens/mcp-redhat-support/issues"
+    "url": "https://github.com/sleepytimeshon/mcp-redhat-support/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
