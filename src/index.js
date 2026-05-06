@@ -67,9 +67,43 @@ async function apiRequest(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+// --- Pagination ---
+
+const DEFAULT_CHUNK = 30000;
+
+function paginate(text, offset, limit, label) {
+  const total = text.length;
+  const start = Math.min(offset, total);
+  const end = Math.min(start + limit, total);
+  const slice = text.slice(start, end);
+  const header = `# ${label}\n# chars ${start}-${end} of ${total}\n\n`;
+  const footer =
+    end < total
+      ? `\n\n[truncated: showing chars ${start}-${end} of ${total}. Call again with offset=${end} for the next chunk.]`
+      : "";
+  return `${header}${slice}${footer}`;
+}
+
+const paginationSchema = {
+  offset: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .default(0)
+    .describe(`Byte offset into the rendered response. Default 0. Use the value from the previous call's "[truncated]" footer to fetch the next chunk.`),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(DEFAULT_CHUNK)
+    .describe(`Maximum characters to return in this call. Default ${DEFAULT_CHUNK} keeps responses under typical MCP tool-result token caps.`),
+};
+
 const server = new McpServer({
   name: "mcp-redhat-support",
-  version: "1.0.0",
+  version: "1.3.0",
 });
 
 // --- Tools ---
@@ -108,16 +142,17 @@ server.registerTool(
 server.registerTool(
   "getCase",
   {
-    description: "Get full details of a specific Red Hat support case",
+    description: "Get full details of a specific Red Hat support case. Large responses are paginated — call repeatedly with `offset` to read subsequent chunks.",
     inputSchema: {
       caseNumber: z.string().describe("The case number (e.g. '04371920')"),
+      ...paginationSchema,
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
-  async ({ caseNumber }) => {
+  async ({ caseNumber, offset, limit }) => {
     const data = await apiRequest(`/cases/${caseNumber}`);
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: paginate(JSON.stringify(data, null, 2), offset, limit, `getCase: ${caseNumber}`) }],
     };
   }
 );
@@ -125,16 +160,17 @@ server.registerTool(
 server.registerTool(
   "getCaseComments",
   {
-    description: "Get all comments on a Red Hat support case",
+    description: "Get all comments on a Red Hat support case. Large responses are paginated — call repeatedly with `offset` to read subsequent chunks.",
     inputSchema: {
       caseNumber: z.string().describe("The case number"),
+      ...paginationSchema,
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
-  async ({ caseNumber }) => {
+  async ({ caseNumber, offset, limit }) => {
     const data = await apiRequest(`/cases/${caseNumber}/comments`);
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: paginate(JSON.stringify(data, null, 2), offset, limit, `getCaseComments: ${caseNumber}`) }],
     };
   }
 );
@@ -165,16 +201,17 @@ server.registerTool(
 server.registerTool(
   "getCaseAttachments",
   {
-    description: "List attachments on a Red Hat support case",
+    description: "List attachments on a Red Hat support case. Large responses are paginated — call repeatedly with `offset` to read subsequent chunks.",
     inputSchema: {
       caseNumber: z.string().describe("The case number"),
+      ...paginationSchema,
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
-  async ({ caseNumber }) => {
+  async ({ caseNumber, offset, limit }) => {
     const data = await apiRequest(`/cases/${caseNumber}/attachments`);
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: paginate(JSON.stringify(data, null, 2), offset, limit, `getCaseAttachments: ${caseNumber}`) }],
     };
   }
 );
@@ -247,17 +284,18 @@ server.registerTool(
 server.registerTool(
   "getCaseComment",
   {
-    description: "Get a single comment on a Red Hat support case by comment ID",
+    description: "Get a single comment on a Red Hat support case by comment ID. Large comments are paginated — call repeatedly with `offset` to read subsequent chunks.",
     inputSchema: {
       caseNumber: z.string().describe("The case number"),
       commentId: z.string().describe("The comment ID"),
+      ...paginationSchema,
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
-  async ({ caseNumber, commentId }) => {
+  async ({ caseNumber, commentId, offset, limit }) => {
     const data = await apiRequest(`/cases/${caseNumber}/comments/${commentId}`);
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: paginate(JSON.stringify(data, null, 2), offset, limit, `getCaseComment: ${caseNumber}/${commentId}`) }],
     };
   }
 );
@@ -265,17 +303,18 @@ server.registerTool(
 server.registerTool(
   "getExternalTrackerUpdates",
   {
-    description: "List external tracker updates (e.g. linked Jira/Bugzilla) on a Red Hat support case",
+    description: "List external tracker updates (e.g. linked Jira/Bugzilla) on a Red Hat support case. Large responses are paginated — call repeatedly with `offset` to read subsequent chunks.",
     inputSchema: {
       caseNumber: z.string().describe("The case number"),
       startDate: z.string().optional().describe("Filter updates from this date (ISO 8601)"),
       endDate: z.string().optional().describe("Filter updates until this date (ISO 8601)"),
       sortField: z.string().optional().describe("Field to sort by"),
       sortOrder: z.string().optional().describe("Sort order ('asc' or 'desc')"),
+      ...paginationSchema,
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
-  async ({ caseNumber, startDate, endDate, sortField, sortOrder }) => {
+  async ({ caseNumber, startDate, endDate, sortField, sortOrder, offset, limit }) => {
     const params = new URLSearchParams();
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
@@ -284,7 +323,7 @@ server.registerTool(
     const qs = params.toString();
     const data = await apiRequest(`/cases/${caseNumber}/externaltrackerupdates${qs ? `?${qs}` : ""}`);
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: paginate(JSON.stringify(data, null, 2), offset, limit, `getExternalTrackerUpdates: ${caseNumber}`) }],
     };
   }
 );

@@ -1,6 +1,6 @@
 {
   "name": "mcp-redhat-support",
-  "version": "1.2.3",
+  "version": "1.3.0",
   "description": "MCP server for Red Hat Support Case Management API",
   "type": "module",
   "bin": {
