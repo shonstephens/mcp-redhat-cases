@@ -23,6 +23,16 @@ An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case M
 | `closeCase` | Close a case with an optional resolution comment |
 | `getBusinessHours` | Get Red Hat support business hours for a given timezone |
 
+## Pagination
+
+The five read-only tools that return potentially-large payloads — `getCase`, `getCaseComments`, `getCaseComment`, `getCaseAttachments`, `getExternalTrackerUpdates` — accept optional `offset` (default 0) and `limit` (default 30000) parameters to chunk responses. Real-world cases with long comment threads can exceed typical MCP tool-result token caps when returned whole. When a response is truncated, the output ends with a footer like:
+
+```
+[truncated: showing chars 0-30000 of 102783. Call again with offset=30000 for the next chunk.]
+```
+
+Pass that `offset` back to fetch the next chunk. Small responses return in one call. `listCases` is not response-paginated; it has its own upstream API row-pagination via the existing `offset` parameter.
+
 ## Prerequisites
 
 - Node.js 18+
